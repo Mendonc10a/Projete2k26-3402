@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepGuard AI - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo-area">
+            <i class="fa-solid fa-shield-halved logo-icon"></i>
+            <span class="logo-text">DEEPGUARD <span class="logo-highlight">AI</span></span>
+            <span class="status-badge"><span class="status-dot"></span> SISTEMA ONLINE</span>
+        </div>
+        <div class="user-area">
+            <div class="admin-profile">
+                <i class="fa-regular fa-user"></i>
+                <span>Admin</span>
+            </div>
+            <button class="btn-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> SAIR</button>
+        </div>
+    </header>
+
+    <section class="counters-bar">
+        <div class="counter-item">
+            <span class="counter-number num-blue">000</span>
+            <span class="counter-label">ANÁLISES TOTAIS</span>
+        </div>
+        <div class="counter-item">
+            <span class="counter-number num-red">000</span>
+            <span class="counter-label">DEEPFAKES DETECTADOS</span>
+        </div>
+        <div class="counter-item">
+            <span class="counter-number num-green">000</span>
+            <span class="counter-label">AUTÊNTICOS</span>
+        </div>
+        <div class="counter-item">
+            <span class="counter-number num-yellow">000</span>
+            <span class="counter-label">SUSPEITOS</span>
+        </div>
+    </section>
+
+    <main class="dashboard-container">
+        
+        <section class="input-card">
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="tab-imagem">
+                    <i class="fa-regular fa-image"></i> IMAGEM / FOTO
+                </button>
+                <button class="tab-btn" data-tab="tab-texto">
+                    <i class="fa-regular fa-file-lines"></i> TEXTO
+                </button>
+            </div>
+
+            <div id="tab-imagem" class="tab-content active">
+                <p class="section-title">UPLOAD DE IMAGEM PARA ANÁLISE</p>
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                    <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                    <p class="drop-text">Arraste uma imagem ou <span class="highlight-click" id="browse-btn">clique para selecionar</span></p>
+                    <p class="file-info">JPG, PNG, WEBP — até 10MB</p>
+                    <img id="image-preview" src="" alt="Preview" style="display: none; max-height: 100%; max-width: 100%; border-radius: 6px; object-fit: contain;">
+                </div>
+            </div>
+
+            <div id="tab-texto" class="tab-content">
+                <p class="section-title">INSERIR TEXTO PARA ANÁLISE</p>
+                <div class="text-zone">
+                    <textarea id="text-input" placeholder="Cole ou escreva o texto que deseja analisar (mínimo 20 caracteres)..."></textarea>
+                    <div class="char-count">0 / 20 min</div>
+                </div>
+            </div>
+
+            <button class="btn-analyze" id="btn-analyze" disabled>
+                <i class="fa-solid fa-microchip"></i> INICIAR ANÁLISE
+            </button>
+
+            <footer class="card-footer">
+                <i class="fa-solid fa-wave-square footer-icon"></i>
+                <p>Os resultados são gerados por modelos de IA em fase de demonstração. Não utilize como única fonte de verificação.</p>
+            </footer>
+        </section>
+
+        <section class="results-card">
+            <div class="empty-results" id="empty-results">
+                <i class="fa-solid fa-expand placeholder-icon"></i>
+                <p class="main-placeholder-text">Nenhuma análise realizada ainda.</p>
+                <p class="sub-placeholder-text">Envie uma imagem ou texto para começar.</p>
+            </div>
+            
+            <div class="results-display" id="results-display" style="display: none;">
+                <h3><i class="fa-solid fa-chart-pie"></i> Resultado da Análise</h3>
+                <p class="simulated-text">Pronto para receber a integração do back-end com a IA.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
