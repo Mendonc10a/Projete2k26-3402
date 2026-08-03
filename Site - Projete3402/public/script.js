@@ -1,20 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // =========================================================
     // MECÂNICA DE ACESSIBILIDADE E TEMA
     // =========================================================
     const themeToggle = document.getElementById('theme-toggle');
     const body = document.body;
-    
+
     const dropdownToggle = document.getElementById('dropdown-toggle');
     const accessibilityMenu = document.getElementById('accessibility-menu');
     const fontDecrease = document.getElementById('font-decrease');
     const fontIncrease = document.getElementById('font-increase');
     const accessReset = document.getElementById('access-reset');
 
-    let currentFontSize = 16; 
+    let currentFontSize = 16;
 
-    // Menu Dropdown de Fonte
     dropdownToggle.addEventListener('click', (e) => {
         e.stopPropagation();
         accessibilityMenu.classList.toggle('show');
@@ -28,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Troca de Tema Claro / Escuro
     themeToggle.addEventListener('click', () => {
         if (body.classList.contains('dark-mode')) {
             body.classList.remove('dark-mode');
@@ -39,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Redimensionamento de fontes
     fontIncrease.addEventListener('click', () => {
         if (currentFontSize < 22) {
             currentFontSize += 1;
@@ -59,11 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.style.setProperty('--base-font-size', '16px');
     });
 
+    // =========================================================
     // ELEMENTOS DE AUTENTICAÇÃO
+    // =========================================================
     const loginScreen = document.getElementById('login-screen');
     const mainDashboard = document.getElementById('main-dashboard');
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     const loginError = document.getElementById('login-error');
     const displayUser = document.getElementById('display-user');
     const btnLogout = document.getElementById('btn-logout');
@@ -74,11 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const goToLogin = document.getElementById('go-to-login');
     const registerForm = document.getElementById('register-form');
     const registerSuccess = document.getElementById('register-success');
+    const registerError = document.getElementById('register-error');
 
+    // =========================================================
     // ELEMENTOS DO DASHBOARD
+    // =========================================================
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const browseBtn = document.getElementById('browse-btn');
@@ -86,30 +89,103 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadIcon = document.querySelector('.upload-icon');
     const dropText = document.querySelector('.drop-text');
     const fileInfo = document.querySelector('.file-info');
-    
+
     const textInput = document.getElementById('text-input');
     const charCount = document.querySelector('.char-count');
     const btnAnalyze = document.getElementById('btn-analyze');
-    
+
     const emptyResults = document.getElementById('empty-results');
     const resultsDisplay = document.getElementById('results-display');
     const historyLog = document.getElementById('history-log');
 
-    // CONTADORES DE ESTADO
     const countTotais = document.getElementById('count-totais');
     const countDeepfakes = document.getElementById('count-deepfakes');
     const countAutenticos = document.getElementById('count-autenticos');
     const countSuspeitos = document.getElementById('count-suspeitos');
 
-    let totalAnalises = 0;
-    let totalDeepfakes = 0;
-    let totalAutenticos = 0;
-    let totalSuspeitos = 0;
-
     let currentTab = 'tab-imagem';
     let hasImage = false;
     let hasValidText = false;
     let currentFileName = '';
+
+    // =========================================================
+    // HELPERS DE API
+    // =========================================================
+    async function apiRequest(url, options = {}) {
+        const res = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            ...options
+        });
+        let data = {};
+        try { data = await res.json(); } catch (e) { /* corpo vazio */ }
+        if (!res.ok) {
+            const err = new Error(data.error || 'Erro na requisição.');
+            err.status = res.status;
+            throw err;
+        }
+        return data;
+    }
+
+    // =========================================================
+    // SESSÃO — RESTAURA LOGIN AO CARREGAR A PÁGINA
+    // =========================================================
+    (async function initSession() {
+        try {
+            const { user } = await apiRequest('/api/me');
+            await enterDashboard(user);
+        } catch (e) {
+            loginScreen.style.display = 'flex';
+            mainDashboard.style.display = 'none';
+        }
+    })();
+
+    async function enterDashboard(user) {
+        loginScreen.style.display = 'none';
+        mainDashboard.style.display = 'flex';
+        displayUser.textContent = user.username;
+        await loadHistoryAndCounters();
+    }
+
+    async function loadHistoryAndCounters() {
+        try {
+            const { history, counters } = await apiRequest('/api/history');
+            renderCounters(counters);
+            renderHistory(history);
+        } catch (e) {
+            console.error('Falha ao carregar histórico:', e);
+        }
+    }
+
+    function renderCounters(counters) {
+        countTotais.textContent = String(counters.total).padStart(3, '0');
+        countDeepfakes.textContent = String(counters.deepfakes).padStart(3, '0');
+        countAutenticos.textContent = String(counters.autenticos).padStart(3, '0');
+        countSuspeitos.textContent = String(counters.suspeitos).padStart(3, '0');
+    }
+
+    function badgeClassFor(resultado) {
+        return resultado === 'DEEPFAKE' ? 'badge-deepfake'
+            : resultado === 'AUTÊNTICO' ? 'badge-autentico'
+            : 'badge-suspeito';
+    }
+
+    function renderHistory(rows) {
+        historyLog.innerHTML = '';
+        rows.forEach(row => {
+            const dataFormatada = new Date(row.created_at)
+                .toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${dataFormatada}</td>
+                <td><strong>${row.tipo}</strong></td>
+                <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${row.origem}</td>
+                <td><span class="badge ${badgeClassFor(row.resultado)}">${row.resultado}</span></td>
+            `;
+            historyLog.appendChild(tr);
+        });
+    }
 
     // =========================================================
     // MECÂNICA DE AUTENTICAÇÃO (LOGIN / REGISTRO)
@@ -126,35 +202,58 @@ document.addEventListener('DOMContentLoaded', () => {
         boxLogin.style.display = 'block';
     });
 
-    registerForm.addEventListener('submit', (e) => {
+    registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        registerSuccess.style.display = 'block';
-        
-        setTimeout(() => {
-            registerSuccess.style.display = 'none';
-            usernameInput.value = document.getElementById('reg-username').value;
-            registerForm.reset();
-            boxRegister.style.display = 'none';
-            boxLogin.style.display = 'block';
-        }, 1500);
+        registerError.style.display = 'none';
+
+        const email = document.getElementById('reg-email').value.trim();
+        const username = document.getElementById('reg-username').value.trim();
+        const password = document.getElementById('reg-password').value;
+
+        try {
+            await apiRequest('/api/register', {
+                method: 'POST',
+                body: JSON.stringify({ email, username, password })
+            });
+
+            registerSuccess.style.display = 'block';
+            setTimeout(async () => {
+                registerSuccess.style.display = 'none';
+                registerForm.reset();
+                boxRegister.style.display = 'none';
+                boxLogin.style.display = 'block';
+                usernameInput.value = username;
+            }, 1200);
+        } catch (err) {
+            registerError.textContent = err.message;
+            registerError.style.display = 'block';
+        }
     });
 
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        loginError.style.display = 'none';
+
         const username = usernameInput.value.trim();
-        
-        if (username !== "") { 
-            loginScreen.style.display = 'none';
-            mainDashboard.style.display = 'flex';
-            displayUser.textContent = username;
-            loginError.style.display = 'none';
+        const password = passwordInput.value;
+
+        try {
+            const { user } = await apiRequest('/api/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
             loginForm.reset();
-        } else {
+            await enterDashboard(user);
+        } catch (err) {
+            loginError.textContent = err.message || 'Usuário ou senha incorretos!';
             loginError.style.display = 'block';
         }
     });
 
-    btnLogout.addEventListener('click', () => {
+    btnLogout.addEventListener('click', async () => {
+        try {
+            await apiRequest('/api/logout', { method: 'POST' });
+        } catch (e) { /* ignora erro de logout */ }
         mainDashboard.style.display = 'none';
         loginScreen.style.display = 'flex';
         resetDashboardFields();
@@ -179,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // RESOLUÇÃO DO BUG DO SUCESSO DE ALTERNÂNCIA DE ABAS (TABS)
+    // ABAS (TABS)
     // =========================================================
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -188,10 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tab.classList.add('active');
             currentTab = tab.getAttribute('data-tab');
-            
-            // Ativa o container correto de forma segura
+
             document.getElementById(currentTab).classList.add('active');
-            
+
             checkValidation();
         });
     });
@@ -200,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // CONTROLE DE UPLOAD DE IMAGEM
     // =========================================================
     browseBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         fileInput.click();
     });
 
@@ -241,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadIcon.style.display = 'none';
                 dropText.style.display = 'none';
                 fileInfo.style.display = 'none';
-                
+
                 hasImage = true;
                 checkValidation();
             };
@@ -254,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
     textInput.addEventListener('input', (e) => {
         const length = e.target.value.length;
         charCount.textContent = `${length} / 20 min`;
-        
+
         hasValidText = length >= 20;
         checkValidation();
     });
@@ -280,34 +378,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // BOTÃO DE ANÁLISE E GERAÇÃO DO HISTÓRICO
+    // BOTÃO DE ANÁLISE — SALVA O RESULTADO NO BANCO DE DADOS
     // =========================================================
-    btnAnalyze.addEventListener('click', () => {
+    btnAnalyze.addEventListener('click', async () => {
         if (!btnAnalyze.classList.contains('enabled')) return;
 
         emptyResults.style.display = 'none';
         resultsDisplay.style.display = 'flex';
-        
+
+        // Simulação do resultado da IA (substitua por uma chamada real ao seu modelo quando disponível)
         const statuses = ['DEEPFAKE', 'AUTÊNTICO', 'SUSPEITOS'];
         const resultadoFinal = statuses[Math.floor(Math.random() * statuses.length)];
-
-        totalAnalises++;
-        if (resultadoFinal === 'DEEPFAKE') totalDeepfakes++;
-        if (resultadoFinal === 'AUTÊNTICO') totalAutenticos++;
-        if (resultadoFinal === 'SUSPEITOS') totalSuspeitos++;
-
-        countTotais.textContent = String(totalAnalises).padStart(3, '0');
-        countDeepfakes.textContent = String(totalDeepfakes).padStart(3, '0');
-        countAutenticos.textContent = String(totalAutenticos).padStart(3, '0');
-        countSuspeitos.textContent = String(totalSuspeitos).padStart(3, '0');
-
-        const agora = new Date();
-        const dataHoraFormatada = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const badgeResultClass = badgeClassFor(resultadoFinal);
 
         let tipoAnalise = '';
         let origemInfo = '';
-
-        const badgeResultClass = resultadoFinal === 'DEEPFAKE' ? 'badge-deepfake' : resultadoFinal === 'AUTÊNTICO' ? 'badge-autentico' : 'badge-suspeito';
 
         if (currentTab === 'tab-imagem') {
             tipoAnalise = 'Imagem';
@@ -329,14 +414,15 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        const novaLinha = document.createElement('tr');
-        novaLinha.innerHTML = `
-            <td>${dataHoraFormatada}</td>
-            <td><strong>${tipoAnalise}</strong></td>
-            <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${origemInfo}</td>
-            <td><span class="badge ${badgeResultClass}">${resultadoFinal}</span></td>
-        `;
-
-        historyLog.insertBefore(novaLinha, historyLog.firstChild);
+        try {
+            const { history, counters } = await apiRequest('/api/history', {
+                method: 'POST',
+                body: JSON.stringify({ tipo: tipoAnalise, origem: origemInfo, resultado: resultadoFinal })
+            });
+            renderCounters(counters);
+            renderHistory(history);
+        } catch (err) {
+            console.error('Falha ao salvar análise no banco de dados:', err);
+        }
     });
 });
